@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PetCare · 宠物投喂</title>
+    <script src="/web/vendor/lucide.min.js"></script>
+    <style>
+      :root {
+        --bg: #f3f5f4;
+        --surface: #ffffff;
+        --text: #232b29;
+        --muted: #78827d;
+        --line: #dde4df;
+        --accent: #18765b;
+        --accent-soft: #e8f2ec;
+        --danger: #bb514b;
+        --danger-soft: #fbefed;
+      }
+      * { box-sizing: border-box; letter-spacing: 0; }
+      [hidden] { display: none !important; }
+      body { margin: 0; color: var(--text); background: linear-gradient(160deg, #f8faf8, var(--bg)); font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 14px; }
+      button, input { font: inherit; -webkit-tap-highlight-color: transparent; }
+      button { cursor: pointer; }
+      button:focus-visible, input:focus-visible { outline: 3px solid #8cc6b0; outline-offset: 3px; }
+      button:disabled { cursor: not-allowed; opacity: 0.48; }
+      button svg { width: 18px; height: 18px; flex: none; }
+      .appbar { min-height: 74px; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+      .brand, .header-meta, .heading, .heading-meta, .button, .section-heading, .quota-caption { display: flex; align-items: center; gap: 10px; }
+      .brand-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 8px; background: var(--accent); color: white; }
+      .brand-mark svg { width: 23px; height: 23px; }
+      .brand-name { font-family: Georgia, "Noto Serif CJK SC", serif; font-size: 25px; font-weight: 700; }
+      .brand-subtitle { margin-left: 8px; padding-left: 18px; border-left: 1px solid var(--line); color: #64716b; }
+      .header-meta { gap: 18px; color: var(--muted); font-size: 12px; }
+      .connection { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+      .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #98a19b; }
+      .connection[data-online="true"] .status-dot { background: var(--accent); }
+      .connection[data-online="false"] .status-dot { background: var(--danger); }
+      .backend-mode { padding-left: 16px; border-left: 1px solid var(--line); }
+      .workspace { width: 100%; max-width: 1680px; height: calc(100dvh - 74px); min-height: 620px; box-sizing: border-box; margin: 0 auto; padding: 20px 28px; display: grid; grid-template-columns: minmax(0, 1fr) 328px; gap: 26px; animation: arrive 220ms ease-out; overflow: hidden; }
+      .monitor { display: flex; flex-direction: column; min-width: 0; min-height: 0; gap: 12px; }
+      .heading { justify-content: space-between; min-height: 32px; }
+      h1, h2, p { margin: 0; }
+      h1 { font-size: 19px; font-weight: 600; }
+      h2 { font-size: 14px; font-weight: 600; }
+      .heading-meta { gap: 12px; color: var(--muted); font-size: 12px; }
+      .camera-id { padding-right: 12px; border-right: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+      .icon-button { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 6px; color: #66746d; background: var(--surface); }
+      .icon-button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+      .camera-stage { position: relative; flex: 1; min-height: 220px; overflow: hidden; border: 1px solid #303c35; border-radius: 6px; background: #151c18; }
+      .live-frame { display: block; width: 100%; height: 100%; object-fit: contain; }
+      .live-label { position: absolute; top: 14px; left: 14px; display: flex; align-items: center; gap: 7px; padding: 5px 9px; color: #f8faf8; background: #16231bd9; border: 1px solid #ffffff24; border-radius: 4px; font-size: 11px; }
+      .live-label .status-dot { background: #7ed2a4; width: 6px; height: 6px; }
+      .camera-placeholder { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; color: #a7b9ac; background: #151c18; text-align: center; padding: 24px; overflow-wrap: anywhere; }
+      .camera-placeholder svg { width: 34px; height: 34px; stroke-width: 1.3; }
+      .activity { flex: none; min-height: 124px; }
+      .section-heading { justify-content: space-between; margin-bottom: 8px; }
+      .section-heading span { font-size: 11px; color: var(--muted); }
+      .events { list-style: none; margin: 0; padding: 0; max-height: 108px; overflow-y: auto; }
+      .event { display: grid; grid-template-columns: 7px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 7px 0; }
+      .event-dot { width: 5px; height: 5px; background: #98a99e; border-radius: 50%; }
+      .event.success .event-dot { background: var(--accent); }
+      .event.error .event-dot { background: var(--danger); }
+      .event-message { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .event time { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+      .empty { color: var(--muted); font-size: 12px; padding: 14px 0; }
+      .control-panel { min-width: 0; min-height: 0; overflow-y: auto; border-left: 1px solid var(--line); padding-left: 26px; scrollbar-width: thin; }
+      .control-panel > h1 { min-height: 32px; display: flex; align-items: center; }
+      .panel-section { border-bottom: 1px solid var(--line); padding: 18px 0; }
+      .quota-caption { justify-content: space-between; color: #65756b; font-size: 12px; }
+      .quota-state { display: flex; align-items: center; gap: 5px; color: var(--accent); font-size: 11px; }
+      .quota-state svg { width: 13px; height: 13px; }
+      .quota-number { display: flex; align-items: baseline; gap: 8px; margin: 9px 0 13px; }
+      #todayCount { font-size: 43px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; }
+      .quota-unit { font-size: 15px; color: var(--muted); }
+      progress { display: block; appearance: none; width: 100%; height: 6px; border: 0; border-radius: 3px; background: #e2e8e3; overflow: hidden; accent-color: var(--accent); }
+      progress::-webkit-progress-bar { background: #e2e8e3; }
+      progress::-webkit-progress-value { background: var(--accent); }
+      progress::-moz-progress-bar { background: var(--accent); }
+      .quota-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 9px; color: var(--muted); font-size: 11px; }
+      .limit-reached .quota-state { color: var(--danger); }
+      .limit-reached progress { accent-color: var(--danger); }
+      .limit-reached progress::-webkit-progress-value { background: var(--danger); }
+      .limit-reached progress::-moz-progress-bar { background: var(--danger); }
+      .form-label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+      .form-label label { font-size: 13px; font-weight: 500; }
+      .form-label span { color: var(--muted); font-size: 11px; }
+      .stepper { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 8px; }
+      .stepper .icon-button { width: 44px; height: 46px; }
+      .stepper input { width: 100%; min-width: 0; height: 46px; border: 1px solid #cdd8d0; border-radius: 6px; background: var(--surface); color: var(--text); font-size: 22px; font-weight: 500; text-align: center; font-variant-numeric: tabular-nums; appearance: textfield; }
+      .stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+      .button { width: 100%; justify-content: center; min-height: 44px; padding: 10px 12px; border: 1px solid transparent; border-radius: 6px; font-size: 13px; font-weight: 500; }
+      .button-primary { background: var(--accent); color: white; }
+      .button-primary:hover:not(:disabled) { background: #105e48; }
+      .save-button { margin-top: 10px; }
+      .field-message { min-height: 17px; margin-top: 7px; font-size: 11px; color: var(--accent); }
+      .field-message.error { color: var(--danger); }
+      .mode-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 17px; }
+      .mode-label { display: block; font-size: 13px; font-weight: 500; }
+      .mode-description { color: var(--muted); font-size: 11px; margin-top: 4px; }
+      .switch { position: relative; appearance: none; flex: none; width: 42px; height: 25px; border: 0; border-radius: 20px; background: #c5cec8; cursor: pointer; margin: 0; transition: background 160ms; }
+      .switch::before { content: ""; position: absolute; width: 19px; height: 19px; left: 3px; top: 3px; border-radius: 50%; background: white; box-shadow: 0 1px 3px #162c2026; transition: transform 160ms; }
+      .switch:checked { background: var(--accent); }
+      .switch:checked::before { transform: translateX(17px); }
+      .switch:disabled { opacity: 0.5; cursor: not-allowed; }
+      .button-feed { background: #2b3831; color: white; }
+      .button-feed:hover:not(:disabled) { background: #17241d; }
+      .limit-notice { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; padding: 9px 10px; background: var(--danger-soft); color: var(--danger); border-radius: 4px; font-size: 11px; }
+      .limit-notice svg { width: 15px; height: 15px; flex: none; margin-top: 1px; }
+      .details { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 11px 16px; margin: 0; padding-top: 18px; font-size: 11px; }
+      .details dt { color: var(--muted); }
+      .details dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+      .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 11px 18px; border: 1px solid #cee2d5; border-radius: 6px; background: white; box-shadow: 0 6px 24px #172e221a; font-size: 13px; color: var(--accent); z-index: 20; }
+      .toast.error { color: var(--danger); border-color: #e9c2bd; }
+      .form-label.spaced { margin-top: 14px; }
+      .startup-reset { margin: 16px 0 12px; }
+      .button-outline { border-color: var(--line); background: var(--surface); color: var(--danger); }
+      .reset-button { margin-top: 10px; }
+      .setting-note { color: var(--muted); font-size: 11px; line-height: 1.5; margin-top: 5px; }
+      .reset-dialog { width: min(420px, calc(100% - 32px)); padding: 24px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--surface); box-shadow: 0 20px 70px #172e2233; }
+      .reset-dialog::backdrop { background: #14251eb3; }
+      .reset-dialog h2 { font-size: 17px; }
+      .reset-dialog p { margin-top: 12px; font-size: 13px; line-height: 1.8; }
+      .dialog-actions { display: flex; gap: 10px; margin-top: 20px; }
+      .button-danger { color: white; background: var(--danger); }
+      @keyframes arrive { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+      @media (max-width: 1020px) {
+        .appbar { padding: 14px 18px; }
+        .workspace { grid-template-columns: minmax(0, 1fr) 296px; gap: 18px; padding: 18px; }
+        .control-panel { padding-left: 18px; }
+        #headerClock { display: none; }
+      }
+      @media (max-width: 680px) {
+        .appbar { min-height: 68px; gap: 8px; }
+        .brand-subtitle, .backend-mode { display: none; }
+        .header-meta { gap: 8px; }
+        .brand-name { font-size: 23px; }
+        .workspace { display: flex; flex-direction: column; height: auto; min-height: 0; gap: 24px; padding: 16px 18px 28px; }
+        .camera-stage { flex: none; min-height: 0; height: auto; aspect-ratio: 4 / 3; }
+        .control-panel { overflow: visible; border-left: 0; border-top: 1px solid var(--line); padding: 20px 0 0; }
+        .activity { min-height: 90px; }
+        .heading-meta { gap: 8px; }
+        .camera-id { padding-right: 8px; }
+      }
+      @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+    </style>
+  </head>
+  <body>
+    <header class="appbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"><i data-lucide="paw-print"></i></span><span class="brand-name">PetCare</span><span class="brand-subtitle">宠物投喂控制台</span></div>
+      <div class="header-meta"><span id="headerClock"></span><span id="backendMode" class="backend-mode">模拟投喂</span><span id="connection" class="connection"><span class="status-dot"></span><span id="connectionText">连接中</span></span></div>
+    </header>
+    <main class="workspace">
+      <section class="monitor" aria-labelledby="monitorTitle">
+        <div class="heading"><h1 id="monitorTitle">实时监测</h1><div class="heading-meta"><span class="camera-id">CAM 01</span><button id="btnRefresh" class="icon-button" type="button" title="刷新状态" aria-label="刷新状态"><i data-lucide="refresh-cw"></i></button></div></div>
+        <!-- 实时画面：用自愈式快照轮询替代 MJPEG 长连接，服务重启后能自动恢复 -->
+        <div class="camera-stage">
+          <img id="live" class="live-frame" alt="宠物相机实时检测画面" />
+          <span class="live-label"><span class="status-dot"></span>实时画面</span>
+          <div id="cameraPlaceholder" class="camera-placeholder"><i data-lucide="camera"></i><span id="cameraMessage">正在连接相机</span></div>
+        </div>
+        <section class="activity" aria-labelledby="activityTitle"><div class="section-heading"><h2 id="activityTitle">投喂动态</h2><span id="updatedAt">尚未同步</span></div><ul id="events" class="events"><li class="empty">暂无投喂记录</li></ul></section>
+      </section>
+      <aside class="control-panel" aria-labelledby="controlTitle">
+        <h1 id="controlTitle">喂养管理</h1>
+        <section id="quota" class="panel-section" aria-labelledby="quotaTitle">
+          <div class="quota-caption"><h2 id="quotaTitle">今日投喂</h2><span class="quota-state"><i data-lucide="shield-check"></i><span id="quotaState">同步中</span></span></div>
+          <div class="quota-number"><span id="todayCount">0</span><span class="quota-unit">/ <span id="dailyLimit">--</span> 次</span></div>
+          <progress id="quotaProgress" max="100" value="0" aria-label="今日投喂进度"></progress>
+          <div class="quota-meta"><span id="remainingFeeds">今日剩余 -- 次</span><span id="quotaPercent">0%</span></div>
+        </section>
+        <form id="limitForm" class="panel-section">
+          <div class="form-label"><label for="dailyLimitInput">每日投喂上限</label><span>1–100 次</span></div>
+          <div class="stepper"><button id="btnDecrease" class="icon-button" type="button" title="减少上限" aria-label="减少上限" disabled><i data-lucide="minus"></i></button><input id="dailyLimitInput" type="number" min="1" max="100" step="1" inputmode="numeric" required aria-describedby="limitMessage" disabled /><button id="btnIncrease" class="icon-button" type="button" title="增加上限" aria-label="增加上限" disabled><i data-lucide="plus"></i></button></div>
+          <div class="form-label spaced"><label for="cooldownInput">最少投喂间隔</label><span>0–86400 秒</span></div>
+          <div class="stepper"><button id="btnIntervalDecrease" class="icon-button" type="button" title="间隔减少30秒" aria-label="间隔减少30秒" disabled><i data-lucide="minus"></i></button><input id="cooldownInput" type="number" min="0" max="86400" step="1" inputmode="numeric" required aria-describedby="limitMessage" disabled /><button id="btnIntervalIncrease" class="icon-button" type="button" title="间隔增加30秒" aria-label="间隔增加30秒" disabled><i data-lucide="plus"></i></button></div>
+          <div class="mode-row startup-reset"><div><label class="mode-label" for="resetOnStart">启动时重置记录</label><p class="mode-description">重启演示服务后生效</p></div><input id="resetOnStart" class="switch" type="checkbox" role="switch" aria-label="启动时重置记录" disabled /></div>
+          <button id="btnSaveLimit" class="button button-primary save-button" type="submit" disabled><i data-lucide="save"></i><span id="saveLabel">保存设置</span></button>
+          <p id="limitMessage" class="field-message" role="status" aria-live="polite"></p>
+        </form>
+        <section class="panel-section" aria-label="投喂操作">
+          <div class="mode-row"><div><label class="mode-label" for="autoMode">自动投喂</label><p id="autoDescription" class="mode-description">同步中</p></div><input id="autoMode" class="switch" type="checkbox" role="switch" aria-label="自动投喂" disabled /></div>
+          <button id="btnManual" class="button button-feed" type="button" disabled><i data-lucide="utensils"></i><span id="manualLabel">立即投喂一次</span></button>
+          <div id="limitNotice" class="limit-notice" role="status" hidden><i data-lucide="shield-check"></i><span>今日次数已达上限，投喂已停止</span></div>
+          <div id="servoNotice" class="limit-notice" role="status" hidden><i data-lucide="alert-triangle"></i><span id="servoNoticeText">舵机原点待校准，投喂已暂停</span></div>
+          <button id="btnResetRecords" class="button button-outline reset-button" type="button" disabled><i data-lucide="rotate-ccw"></i><span>重置记录</span></button>
+        </section>
+        <dl class="details"><dt>最近投喂</dt><dd id="lastFeed">--</dd><dt>冷却剩余</dt><dd id="cooldown">--</dd><dt>自动投喂时段</dt><dd id="timeWindows">--</dd><dt>识别目标</dt><dd id="allowedLabels">猫 / 狗</dd></dl>
+      </aside>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <dialog id="resetDialog" class="reset-dialog" aria-labelledby="resetTitle" aria-describedby="resetDescription">
+      <h2 id="resetTitle">重置投喂记录？</h2>
+      <p id="resetDescription">将清空今日次数、冷却和动态记录，保留每日上限、最少间隔及启动重置设置。自动投喂将暂停。</p>
+      <p id="resetError" class="field-message error" role="alert"></p>
+      <div class="dialog-actions"><button id="cancelReset" class="button button-outline" type="button">取消</button><button id="confirmReset" class="button button-danger" type="button"><i data-lucide="rotate-ccw"></i><span>确认重置</span></button></div>
+    </dialog>
+    <script>
+      const byId = (id) => document.getElementById(id);
+      const liveImg = byId("live");
+      const limitInput = byId("dailyLimitInput");
+      const intervalInput = byId("cooldownInput");
+      const resetOnStartInput = byId("resetOnStart");
+      const labels = { cat: "猫", dog: "狗", person: "人员" };
+      let currentStatus = null;
+      let settingsDirty = false;
+      let pendingAction = null;
+      let refreshing = false;
+      let online = false;
+      let toastTimer = null;
+      let lastResetAt = null;
+      const eventHistory = new Map();
+
+      function notify(message, error = false) {
+        const toast = byId("toast");
+        clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.classList.toggle("error", error);
+        toast.hidden = false;
+        toastTimer = setTimeout(() => { toast.hidden = true; }, 4000);
+      }
+
+      async function api(path, options = {}) {
+        const response = await fetch(path, { ...options, headers: { "Content-Type": "application/json", ...options.headers }, cache: "no-store" });
+        if (!response.ok) throw new Error(response.status === 422 ? "设置无效，请检查次数、间隔和开关" : "请求失败，请稍后重试");
+        return response.json();
+      }
+
+      function formatTime(value, includeDate = false) {
+        if (!value) return "--";
+        const date = new Date(/(?:Z|[+-]\d{2}:\d{2})$/.test(value) ? value : `${value}Z`);
+        if (Number.isNaN(date.getTime())) return "--";
+        return date.toLocaleString("zh-CN", { ...(includeDate ? { month: "2-digit", day: "2-digit" } : {}), hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+      }
+
+      function validLimit() {
+        const value = limitInput.valueAsNumber;
+        return Number.isInteger(value) && value >= 1 && value <= 100;
+      }
+
+      function validInterval() {
+        const value = intervalInput.valueAsNumber;
+        return Number.isInteger(value) && value >= 0 && value <= 86400;
+      }
+
+      function updateControls() {
+        const available = !!currentStatus && online && !pendingAction;
+        limitInput.disabled = !available;
+        intervalInput.disabled = !available;
+        resetOnStartInput.disabled = !available;
+        byId("btnDecrease").disabled = !available || (validLimit() && limitInput.valueAsNumber <= 1);
+        byId("btnIncrease").disabled = !available || (validLimit() && limitInput.valueAsNumber >= 100);
+        byId("btnIntervalDecrease").disabled = !available || (validInterval() && intervalInput.valueAsNumber <= 0);
+        byId("btnIntervalIncrease").disabled = !available || (validInterval() && intervalInput.valueAsNumber >= 86400);
+        byId("btnSaveLimit").disabled = !available || !settingsDirty || !validLimit() || !validInterval();
+        const feederReady = currentStatus?.feeder_ready !== false;
+        byId("autoMode").disabled = !available || (!feederReady && !currentStatus?.auto_enabled);
+        byId("btnResetRecords").disabled = !available;
+        byId("confirmReset").disabled = !available;
+        byId("cancelReset").disabled = !!pendingAction;
+        const cooling = (currentStatus?.cooldown_left_sec || 0) > 0;
+        byId("btnManual").disabled = !available || !feederReady || !!currentStatus?.limit_reached || cooling;
+        byId("manualLabel").textContent = pendingAction === "feed" ? "正在投喂" : !feederReady ? "舵机未就绪" : currentStatus?.limit_reached ? "今日投喂已达上限" : cooling ? `冷却中 · ${currentStatus.cooldown_left_sec}秒` : "立即投喂一次";
+        byId("saveLabel").textContent = pendingAction === "settings" ? "保存中" : "保存设置";
+      }
+
+      function setOnline(value) {
+        online = value;
+        byId("connection").dataset.online = String(value);
+        byId("connectionText").textContent = value ? "设备在线" : "连接中断";
+        updateControls();
+      }
+
+      function renderStatus(data) {
+        currentStatus = data;
+        const resetAt = data.last_reset_at || null;
+        if (resetAt !== lastResetAt) {
+          eventHistory.clear();
+          byId("events").replaceChildren();
+          lastResetAt = resetAt;
+        }
+        const reached = data.limit_reached;
+        const percent = Math.min(100, Math.round(data.daily_count / data.daily_limit * 100));
+        byId("todayCount").textContent = data.daily_count;
+        byId("dailyLimit").textContent = data.daily_limit;
+        byId("quotaProgress").value = percent;
+        byId("quotaPercent").textContent = `${percent}%`;
+        byId("quotaState").textContent = reached ? "已达上限" : "额度充足";
+        byId("quota").classList.toggle("limit-reached", reached);
+        byId("remainingFeeds").textContent = `今日剩余 ${data.remaining_feeds} 次`;
+        byId("limitNotice").hidden = !reached;
+        byId("servoNotice").hidden = data.feeder_backend !== "servo" || data.feeder_ready !== false;
+        byId("servoNoticeText").textContent = data.feeder_status?.reference_confirmed === false ? "SG90 原点待校准，投喂已暂停" : "舵机未就绪，请检查控制器和故障状态";
+        byId("autoMode").checked = data.auto_enabled;
+        byId("autoDescription").textContent = data.auto_enabled ? reached ? "额度已用尽" : data.cooldown_left_sec > 0 ? "冷却中" : "已启用" : "已暂停";
+        byId("lastFeed").textContent = formatTime(data.last_feed_at, true);
+        byId("cooldown").textContent = `${data.cooldown_left_sec} 秒`;
+        byId("timeWindows").textContent = (data.active_time_windows || []).includes("00:00-23:59") ? "全天" : (data.active_time_windows || []).join(" · ");
+        byId("allowedLabels").textContent = (data.allowed_labels || []).map((label) => labels[label] || label).join(" / ");
+        byId("backendMode").textContent = data.feeder_backend === "servo" ? "舵机投喂" : data.feeder_backend === "command" ? "设备投喂" : "模拟投喂";
+        if (!settingsDirty) {
+          limitInput.value = data.daily_limit;
+          intervalInput.value = data.cooldown_sec;
+          resetOnStartInput.checked = !!data.reset_on_start;
+        }
+        updateControls();
+      }
+
+      function eventMessage(event) {
+        if (event.kind === "feed_success") return event.data?.reason?.startsWith("auto:") ? "识别到宠物，自动投喂完成" : "手动投喂完成";
+        if (event.kind === "feed_failure") return "投喂失败";
+        if (event.kind === "feed_skip") {
+          if (event.message === "daily limit reached") return "达到今日上限，已阻止投喂";
+          if (event.message === "cooldown active") return "尚在最少间隔内，已阻止投喂";
+          if (event.message === "score below threshold") return `识别分数偏低（${event.data?.score ?? "--"} < ${event.data?.min_score ?? "--"}）`;
+          if (event.message === "waiting for consecutive hits") return `命中累计中（${event.data?.hits ?? 0}/${event.data?.required_hits ?? "--"}）`;
+          if (event.message === "person block active") return "检测到人，当前阻止自动投喂";
+          if (event.message === "person score below threshold") return `人物误检已忽略（${event.data?.score ?? "--"} < ${event.data?.person_min_score ?? "--"}）`;
+          if (event.message === "outside active time") return "当前不在自动投喂时段";
+          if (event.message === "outside feed zone") return "目标不在投喂区域内";
+          if (event.message === "auto mode disabled") return "自动投喂当前已暂停";
+          return "本次自动投喂未执行";
+        }
+        if (event.kind === "mode_change") return event.data?.auto_enabled ? "自动投喂已开启" : "自动投喂已暂停";
+        if (event.message === "daily limit updated") return `每日上限已设为 ${event.data.daily_limit} 次`;
+        if (event.message === "feeding settings updated") return "投喂设置已保存";
+        if (event.message === "feeding records reset") return "记录已重置，自动投喂已暂停";
+        return "投喂控制器已就绪";
+      }
+
+      function renderEvents(events) {
+        events.filter((event) => event.kind !== "detection" && (!lastResetAt || Date.parse(event.timestamp) >= Date.parse(lastResetAt))).forEach((event) => eventHistory.set(`${event.timestamp}:${event.kind}`, event));
+        const recent = [...eventHistory.values()].sort((first, second) => second.timestamp.localeCompare(first.timestamp)).slice(0, 8);
+        eventHistory.clear();
+        recent.forEach((event) => eventHistory.set(`${event.timestamp}:${event.kind}`, event));
+        if (!recent.length) return;
+        byId("events").replaceChildren(...recent.map((event) => {
+          const item = document.createElement("li");
+          item.className = `event ${event.kind === "feed_success" ? "success" : event.kind === "feed_failure" ? "error" : ""}`;
+          const dot = document.createElement("span");
+          dot.className = "event-dot";
+          const message = document.createElement("span");
+          message.className = "event-message";
+          message.textContent = eventMessage(event);
+          const time = document.createElement("time");
+          time.dateTime = event.timestamp;
+          time.textContent = formatTime(event.timestamp);
+          item.append(dot, message, time);
+          return item;
+        }));
+      }
+
+      function renderLive(data) {
+        const unavailable = !data.running || !data.camera_opened || !!data.last_error;
+        byId("cameraMessage").textContent = unavailable ? "相机暂不可用" : "正在连接相机";
+        if (unavailable) byId("cameraPlaceholder").hidden = false;
+        else if (liveImg.naturalWidth > 0) byId("cameraPlaceholder").hidden = true;
+      }
+
+      // 自愈式画面刷新：每次请求独立取一帧，服务重启或断流后会自动恢复
+      let frameTimer = null;
+      let frameBusy = false;
+      let frameFailures = 0;
+
+      function scheduleFrame(delay) {
+        clearTimeout(frameTimer);
+        frameTimer = setTimeout(loadFrame, delay);
+      }
+
+      function loadFrame() {
+        if (frameBusy) return;
+        frameBusy = true;
+        const probe = new Image();
+        probe.onload = () => {
+          frameBusy = false;
+          frameFailures = 0;
+          liveImg.src = probe.src;
+          byId("cameraPlaceholder").hidden = true;
+          scheduleFrame(60);
+        };
+        probe.onerror = () => {
+          frameBusy = false;
+          frameFailures += 1;
+          if (frameFailures > 3) {
+            byId("cameraPlaceholder").hidden = false;
+            byId("cameraMessage").textContent = "正在连接相机";
+          }
+          scheduleFrame(Math.min(2000, 300 * frameFailures));
+        };
+        probe.src = `/api/live/snapshot.jpg?t=${Date.now()}`;
+      }
+
+      async function refreshAll() {
+        if (refreshing) return;
+        refreshing = true;
+        try {
+          const [status, events, live] = await Promise.allSettled([api("/api/status"), api("/api/events?limit=50"), api("/api/live/status")]);
+          setOnline(status.status === "fulfilled");
+          if (status.status === "fulfilled") {
+            renderStatus(status.value);
+            byId("updatedAt").textContent = `${new Date().toLocaleTimeString("zh-CN", { hour12: false })} 同步`;
+          }
+          if (events.status === "fulfilled") renderEvents(events.value.events || []);
+          if (live.status === "fulfilled") renderLive(live.value);
+        } finally {
+          refreshing = false;
+        }
+      }
+
+      async function performAction(name, operation) {
+        if (pendingAction || !online) return;
+        pendingAction = name;
+        updateControls();
+        try {
+          await operation();
+          await refreshAll();
+        } catch (error) {
+          if (currentStatus) byId("autoMode").checked = currentStatus.auto_enabled;
+          if (name === "reset") byId("resetError").textContent = error.message || "重置失败，请重试";
+          notify(error.message || "操作失败，请重试", true);
+        } finally {
+          pendingAction = null;
+          updateControls();
+        }
+      }
+
+      function updateDraft() {
+        settingsDirty = !currentStatus || limitInput.valueAsNumber !== currentStatus.daily_limit || intervalInput.valueAsNumber !== currentStatus.cooldown_sec || resetOnStartInput.checked !== !!currentStatus.reset_on_start;
+        const valid = validLimit() && validInterval();
+        byId("limitMessage").textContent = valid ? settingsDirty ? "尚未保存" : "" : !validLimit() ? "次数须为 1–100 的整数" : "间隔须为 0–86400 的整数秒";
+        byId("limitMessage").classList.toggle("error", !valid);
+        updateControls();
+      }
+
+      function stepLimit(amount) {
+        limitInput.value = Math.max(1, Math.min(100, (Number.isFinite(limitInput.valueAsNumber) ? limitInput.valueAsNumber : 1) + amount));
+        updateDraft();
+      }
+
+      byId("limitForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!validLimit() || !validInterval() || !settingsDirty) return;
+        const dailyLimit = limitInput.valueAsNumber;
+        const cooldownSec = intervalInput.valueAsNumber;
+        const resetOnStart = resetOnStartInput.checked;
+        performAction("settings", async () => {
+          const data = await api("/api/settings/feeding", { method: "PUT", body: JSON.stringify({ daily_limit: dailyLimit, cooldown_sec: cooldownSec, reset_on_start: resetOnStart }) });
+          settingsDirty = false;
+          renderStatus(data);
+          byId("limitMessage").textContent = `已保存 · 间隔 ${data.cooldown_sec} 秒`;
+          byId("limitMessage").classList.remove("error");
+          notify("投喂设置已保存");
+        });
+      });
+      limitInput.addEventListener("input", updateDraft);
+      intervalInput.addEventListener("input", updateDraft);
+      resetOnStartInput.addEventListener("change", updateDraft);
+      byId("btnIntervalDecrease").addEventListener("click", () => stepInterval(-30));
+      byId("btnIntervalIncrease").addEventListener("click", () => stepInterval(30));
+      function stepInterval(amount) {
+        intervalInput.value = Math.max(0, Math.min(86400, (Number.isFinite(intervalInput.valueAsNumber) ? intervalInput.valueAsNumber : 0) + amount));
+        updateDraft();
+      }
+      byId("btnResetRecords").addEventListener("click", () => {
+        byId("resetError").textContent = "";
+        byId("resetDialog").showModal();
+      });
+      byId("cancelReset").addEventListener("click", () => byId("resetDialog").close());
+      byId("resetDialog").addEventListener("cancel", (event) => {
+        if (pendingAction === "reset") event.preventDefault();
+      });
+      byId("confirmReset").addEventListener("click", () => performAction("reset", async () => {
+        const data = await api("/api/records/reset", { method: "POST", body: JSON.stringify({ confirmed: true }) });
+        renderStatus(data);
+        byId("resetDialog").close();
+        notify("记录已重置，自动投喂已暂停");
+      }));
+      byId("btnDecrease").addEventListener("click", () => stepLimit(-1));
+      byId("btnIncrease").addEventListener("click", () => stepLimit(1));
+      byId("autoMode").addEventListener("change", (event) => {
+        const enabled = event.target.checked;
+        if (enabled && currentStatus?.feeder_ready === false) {
+          event.target.checked = false;
+          notify("舵机原点未校准或存在故障，不能开启自动投喂", true);
+          return;
+        }
+        performAction("mode", async () => {
+          await api("/api/mode", { method: "POST", body: JSON.stringify({ auto_enabled: enabled }) });
+          renderStatus(await api("/api/status"));
+          notify(enabled ? "自动投喂已开启" : "自动投喂已暂停");
+        });
+      });
+      byId("btnManual").addEventListener("click", () => {
+        if (currentStatus?.feeder_ready === false || currentStatus?.limit_reached || currentStatus?.cooldown_left_sec > 0) return;
+        performAction("feed", async () => {
+          const result = await api("/api/feed/manual", { method: "POST", body: JSON.stringify({ reason: "manual-web", bypass_cooldown: false }) });
+          renderStatus(await api("/api/status"));
+          notify(result.fed ? "投喂完成" : result.reason === "daily limit reached" ? "今日投喂次数已达上限" : result.reason === "cooldown active" ? "尚在最少间隔内，请稍后重试" : "投喂未完成，请检查设备", !result.fed);
+        });
+      });
+      byId("btnRefresh").addEventListener("click", refreshAll);
+      byId("headerClock").textContent = new Date().toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "short" });
+      if (window.lucide) lucide.createIcons({ attrs: { "stroke-width": 1.7 } });
+      refreshAll();
+      setInterval(refreshAll, 2000);
+      loadFrame();
+    </script>
+  </body>
+</html>
