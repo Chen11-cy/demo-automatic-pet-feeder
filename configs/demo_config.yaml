@@ -1,0 +1,59 @@
+server:
+  host: 0.0.0.0
+  port: 8787
+
+live:
+  camera_device: /dev/v4l/by-id/usb-icSpring_icspring_camera-video-index0
+  width: 640
+  height: 480
+  fps: 30
+  threshold: 0.45
+  model_cfg: models/yolov4-tiny.cfg
+  model_weights: models/yolov4-tiny.weights
+  # RK3576 实测：OpenCV 8 线程会占 690% CPU 却只比 2 线程快一点，相机本身仅 ~8.6fps
+  cv_threads: 2
+  # 每秒最多推理帧数，降低负载同时保持识别响应
+  inference_fps_limit: 5.0
+  # 自动优先尝试 OpenCL，失败回退 CPU
+  dnn_target: auto
+
+rules:
+  allowed_labels: [cat, dog]
+  min_score: 0.55
+  required_hits: 2
+  hit_window_sec: 2.5
+  cooldown_sec: 60
+  daily_limit: 10
+  block_when_person: true
+  person_block_sec: 15
+  # person 分数达到该值才阻断；低于此值的误检不阻断自动投喂
+  person_min_score: 0.55
+  # 演示场景：关闭画面区域限制，识别到宠物即投喂
+  feed_zone: null
+  # 演示场景：全天可投喂，不再受时段限制
+  active_time_windows:
+    - "00:00-23:59"
+
+feeder:
+  backend: servo
+  command: ""
+  command_timeout_sec: 5
+  servo:
+    controller: 2ade3000.pwm
+    # 2026-11-09 用户在设备上实测确认：800us -> 2200us -> 800us 完整往返，行程平滑回到原点
+    reference_confirmed: true
+    channel: 0
+    closed_pulse_us: 800
+    feed_pulse_us: 2200
+    settle_ms: 600
+    hold_ms: 400
+    # 慢速平滑扫动：24 步 × 25ms ≈ 600ms 走完单程，来回一趟约 1.6 秒
+    sweep_steps: 24
+    sweep_step_ms: 25
+    # 每次投喂来回 2 趟，动作更明显
+    feed_cycles: 2
+
+storage:
+  data_dir: ./data
+  max_events: 300
+  reset_on_start: false

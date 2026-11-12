@@ -1,0 +1,17 @@
+[Unit]
+Description=Pet Feeder Demo Kiosk Browser
+After=graphical.target pet-feeder-ai-demo.service
+Wants=graphical.target pet-feeder-ai-demo.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/opt/pet-feeder-ai-demo/scripts/launch_device.sh http://127.0.0.1:8787/
+User=root
+Restart=always
+RestartSec=5
+KillMode=control-group
+TimeoutStopSec=15
+
+[Install]
+WantedBy=graphical.target
