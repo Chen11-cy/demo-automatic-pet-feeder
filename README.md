@@ -49,6 +49,12 @@ bash scripts/start.sh
 
 离线 Python 包可使用工作区的
 `h1/debian/QuecPi-QCLinux-BL01/prebuild/python3.12.tar.gz`。
+先检查运行时是否存在：
+
+```bash
+test -x /opt/py312/bin/python && /opt/py312/bin/python -V || echo "missing /opt/py312/bin/python"
+```
+
 将包传到设备 `/tmp/pet-feeder-python312.tar.gz` 后，仅在 `/opt/py312` 尚不存在时执行：
 
 ```bash
@@ -58,22 +64,44 @@ ln -s python3.12 /opt/py312/bin/python
 /opt/py312/bin/python -m pip --version
 ```
 
+若设备已有 `/opt/py312`，可跳过解压步骤，只保留版本检查。
+
 部署应用的 `app`、`configs`、`models`、`scripts`、`systemd`、`web`、依赖文件和
 `wheelhouse_aarch64`，不要复制旧设备的 `data`、虚拟环境和浏览器 profile。
 当前相机配置使用稳定路径 `/dev/v4l/by-id/usb-icSpring_icspring_camera-video-index0`；
 更换相机型号时应重新确认路径和实际采集能力。
 
-在设备应用目录执行：
+在设备应用目录执行（分为运行时依赖和测试依赖两步）：
 
 ```bash
-/opt/py312/bin/python -m pip install --no-index --find-links wheelhouse_aarch64 -r requirements-dev.txt
+/opt/py312/bin/python -m pip install --no-index --find-links wheelhouse_aarch64 -r requirements.txt
 /opt/py312/bin/python -m pip check
-/opt/py312/bin/python -m unittest discover -s scripts -p 'test_*.py' -v
 chmod +x scripts/launch_device.sh
 install -m 644 systemd/pet-feeder-ai-demo.service /etc/systemd/system/pet-feeder-ai-demo.service
 install -m 644 systemd/pet-feeder-kiosk.service /etc/systemd/system/pet-feeder-kiosk.service
 systemctl daemon-reload
 systemctl enable --now pet-feeder-ai-demo.service pet-feeder-kiosk.service
+```
+
+若要在设备端执行回归测试，再额外安装测试依赖并运行单测：
+
+```bash
+/opt/py312/bin/python -m pip install --no-index --find-links wheelhouse_aarch64 -r requirements-dev.txt
+/opt/py312/bin/python -m unittest discover -s scripts -p 'test_*.py' -v
+```
+
+服务启动后建议做一次带重试的健康检查。个别设备在重启后首秒可能出现瞬时 `curl rc=7`，
+通常是端口尚未就绪，重试后应恢复 200：
+
+```bash
+for i in 1 2 3 4 5; do
+  curl -fsS http://127.0.0.1:8787/api/status && break
+  sleep 1
+done
+for i in 1 2 3 4 5; do
+  curl -fsS http://127.0.0.1:8787/api/live/status && break
+  sleep 1
+done
 ```
 
 当前项目配置为已验证的 M2 40Pin 第33脚舵机执行器。其他设备或接线未确认时，
